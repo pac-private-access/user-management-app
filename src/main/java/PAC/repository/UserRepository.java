@@ -1,9 +1,8 @@
-
-package PAC.demo.repository;
+package PAC.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import PAC.demo.model.User;
+import PAC.model.User;
 
 public interface UserRepository extends JpaRepository<User, Long> {
-User findByEmail(String email);
+	User findByEmail(String email);
 }

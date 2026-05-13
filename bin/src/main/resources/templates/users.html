@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Users</title>
+</head>
+<body>
+
+<h1>Adauga utilizator</h1>
+
+<form action="/users" method="post">
+    <input type="text" name="nume" placeholder="Nume" />
+    <input type="email" name="email" placeholder="Email" />
+    <input type="text" name="telefon" placeholder="Telefon" />
+    
+    <input type="password" name="parola" placeholder="Parola" />
+
+    <button type="submit">Salveaza</button>
+</form>
+
+</body>
+</html>
