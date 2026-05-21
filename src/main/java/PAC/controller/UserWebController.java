@@ -2,16 +2,22 @@ package PAC.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import PAC.model.User;
-import PAC.repository.UserRepository;
+
+import PAC.model.Employee;
+import PAC.repository.EmployeeRepository;
 import jakarta.servlet.http.HttpSession;
-
+/*
+ * Controller for managing data flow to the web frontend,
+ * 
+ * NOT to be confused with controller that talks to 
+ * the database API endpoints
+*/
 @Controller
-public class UserController {
+public class UserWebController {
 
-	private final UserRepository userRepository;
+	private final EmployeeRepository userRepository;
 
-	public UserController(UserRepository userRepository) { this.userRepository = userRepository; }
+	public UserWebController(EmployeeRepository userRepository) { this.userRepository = userRepository; }
 
 	@GetMapping("/users")
 	public String users() {
@@ -25,7 +31,7 @@ public class UserController {
 	public String showLoginPage() { return "login"; }
 
 	@PostMapping("/users")
-	public String saveUser(@ModelAttribute User user) {
+	public String saveUser(@ModelAttribute Employee user) {
 		userRepository.save(user);
 		return "redirect:/users";
 	}
@@ -33,9 +39,9 @@ public class UserController {
 	@PostMapping("/login")
 	public String login(@RequestParam String email, @RequestParam String parola, HttpSession session) {
 
-		User user = userRepository.findByEmail(email);
+		Employee user = userRepository.findByEmail(email);
 
-		if (user != null && user.getParola().equals(parola)) {
+		if (user != null && user.getPassword().equals(parola)) {
 			session.setAttribute("user", user);
 			return "redirect:/users";
 		}
