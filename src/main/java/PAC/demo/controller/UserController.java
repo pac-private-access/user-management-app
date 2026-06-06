@@ -1,5 +1,6 @@
 package PAC.demo.controller;
 
+import org.springframework.ui.Model;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import PAC.demo.model.User;
@@ -16,10 +17,13 @@ public class UserController {
     }
 
     @GetMapping("/users")
-public String users() {
-    /* if (session.getAttribute("user") == null) {
-        return "redirect:/login";
-    } */
+public String users( Model model) {
+
+    model.addAttribute(
+        "users",
+        userRepository.findAll()
+    );
+
     return "users";
 }
 
@@ -27,6 +31,7 @@ public String users() {
 public String showLoginPage() {
     return "login";
 }
+
 
     @PostMapping("/users")
     public String saveUser(@ModelAttribute User user) {

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Gestionare Utilizatori</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+
+    
+
+</head>
+<body>
+
+    <div class="sidebar">
+
+        <div class="sidebar-header">
+
+    <img src="\Pac_Logo_fara fundal.png" alt="PAC Logo" class="sidebar-logo">
+
+    <div class="sidebar-title">
+
+        <h5>Private Access PAC</h5>
+
+    </div>
+
+</div>
+        <a href="/dashboard" class="menu-item">
+            <i class="fa-solid fa-house"></i>
+            Dashboard
+        </a>
+
+        <a href="/users" class="menu-item">
+            <i class="fa-solid fa-users"></i>
+            Utilizatori
+        </a>
+
+        <a href="/rapoarte" class="menu-item">
+            <i class="fa-solid fa-chart-column"></i>
+            Rapoarte
+        </a>
+
+        <a href="/accestimpreal" class="menu-item">
+            <i class="fa-solid fa-broadcast-tower"></i>
+            Acces in timp real
+        </a>
+
+        <a href="/settings" class="menu-item">
+            <i class="fa-solid fa-gear"></i>
+            Setări
+        </a>
+
+
+        <a href="/logout" class="menu-item">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            Deconectare
+        </a>
+
+    </div>
+    <div class="content">
+
+        <p>Bine ai venit în sistemul Private Access PAC</p>
+
+        <div class="row mt-4">
+
+            <div class="col-md-3">
+                <div class="card card-stat p-3">
+                <h3>124</h3>
+                <p>Utilizatori activi</p>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card card-stat p-3">
+                <h3>18</h3>
+                <p>Angajati intrati astazi</p>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card card-stat p-3">
+                <h3>4</h3>
+                <p>Angajati in cladire acum</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row mt-4">
+
+        <div class="col-md-6">
+            <div class="card p-3">
+                <h4>Accesări în ultima săptămână</h4>
+                <canvas id="accessChart"></canvas>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card p-3">
+                <h4>Cereri procesate</h4>
+                    <div class="chart-container">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="dashboard-section">
+
+        <h4>Activitate recentă</h4>
+
+        <table class="table">
+
+            <thead>
+                <tr>
+                    <th>Utilizator</th>
+                    <th>Acțiune</th>
+                    <th>Ora</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                <tr>
+                    <td>Ion Popescu</td>
+                    <td>Autentificare</td>
+                    <td>14:05</td>
+                </tr>
+
+                <tr>
+                    <td>Maria Bălan</td>
+                    <td>Acces Laborator</td>
+                    <td>13:58</td>
+                </tr>
+
+                <tr>
+                    <td>Andrei Ciobanu</td>
+                    <td>Generare raport</td>
+                    <td>13:42</td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+// Grafic accesări săptămânale
+
+new Chart(
+    document.getElementById('accessChart'),
+    {
+        type: 'line',
+        data: {
+            labels: [
+                'Luni',
+                'Marți',
+                'Miercuri',
+                'Joi',
+                'Vineri',
+                'Sâmbătă',
+                'Duminică'
+            ],
+            datasets: [{
+                label: 'Accesări',
+                data: [34, 41, 38, 45, 52, 19, 12],
+                borderWidth: 3
+            }]
+        }
+    }
+);
+
+
+// Pie Chart Aprobat vs Refuzat
+
+new Chart(
+    document.getElementById('pieChart'),
+    {
+        type: 'pie',
+        data: {
+            labels: [
+                'Aprobate',
+                'Refuzate'
+            ],
+            datasets: [{
+                data: [45, 8]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    }
+);
+
+</script>
+    <script>
+
+    const theme =
+        localStorage.getItem('theme');
+
+    if(theme === 'dark'){
+        document.body.classList.add(
+            'dark-mode'
+        );
+    }
+
+    </script>
+</body>
+</html>
+
