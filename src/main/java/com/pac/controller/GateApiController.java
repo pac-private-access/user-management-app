@@ -1,6 +1,6 @@
 package com.pac.controller;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 
 import org.springframework.http.ResponseEntity;
@@ -10,9 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.pac.entity.AccessDirection;
 import com.pac.entity.AccessLog;
-import com.pac.entity.AccessResult;
 import com.pac.entity.Employee;
 import com.pac.repository.AccessLogRepository;
 import com.pac.repository.EmployeeRepository;
@@ -28,91 +26,95 @@ import lombok.Setter;
 @RequiredArgsConstructor
 public class GateApiController {
 
-	private final EmployeeRepository employeeRepository;
-	private final EmployeeService employeeService;
-	private final AccessLogRepository accessLogRepository;
-	private final SimpMessagingTemplate messagingTemplate;
+    private final EmployeeRepository employeeRepository;
+    private final EmployeeService employeeService;
+    private final AccessLogRepository accessLogRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
-	@PostMapping("/authorize")
-	public ResponseEntity<?> authorize(@RequestBody GateRequest request) {
-		Optional<Employee> empOpt = Optional.empty();
-		
-		if (request.getBluetoothSecurityCode() != null && !request.getBluetoothSecurityCode().isEmpty()) {
-			empOpt = employeeRepository.findByBluetoothSecurityCode(request.getBluetoothSecurityCode());
-		} else if (request.getBadgeNumber() != null && !request.getBadgeNumber().isEmpty()) {
-			empOpt = employeeRepository.findByBadgeNumber(request.getBadgeNumber());
-		}
+    @PostMapping("/authorize")
+    public ResponseEntity<?> authorize(@RequestBody GateRequest request) {
+        Optional<Employee> empOpt = Optional.empty();
 
-		if (empOpt.isEmpty()) {
-			return ResponseEntity.status(404).body(new GateResponse("DENIED", "Employee not found"));
-		}
+        if (request.getBluetoothSecurityCode() != null && !request.getBluetoothSecurityCode().isBlank()) {
+            empOpt = employeeRepository.findByBluetoothSecurityCode(request.getBluetoothSecurityCode());
+        } else if (request.getBadgeNumber() != null && !request.getBadgeNumber().isBlank()) {
+            empOpt = employeeRepository.findByBadgeNumber(request.getBadgeNumber());
+        }
 
-		Employee employee = empOpt.get();
-		boolean allowed = employeeService.canEnter(employee);
-		AccessResult result = allowed ? AccessResult.GRANTED : AccessResult.DENIED;
-		AccessDirection direction = "EXIT".equalsIgnoreCase(request.getDirection()) ? AccessDirection.EXIT : AccessDirection.ENTRY;
+        if (empOpt.isEmpty()) {
+            accessLogRepository.save(AccessLog.builder()
+                    .eventType(request.getDirection())
+                    .accessMethod(request.getAccessMethod())
+                    .isAuthorized(false)
+                    .outOfSchedule(false)
+                    .carPlateSeen(request.getCarPlateSeen())
+                    .eventAt(OffsetDateTime.now())
+                    .syncedToCloud(true)
+                    .build());
+            return ResponseEntity.status(404).body(new GateResponse("DENIED", "Employee not found"));
+        }
 
-		// Save access log
-		AccessLog log = AccessLog.builder()
-				.employee(employee)
-				.timestamp(LocalDateTime.now())
-				.direction(direction)
-				.result(result)
-				.build();
-		accessLogRepository.save(log);
+        Employee employee = empOpt.get();
+        boolean authorized = employeeService.canEnter(employee);
+        String eventType = "EXIT".equalsIgnoreCase(request.getDirection()) ? "exit" : "entry";
 
-		// Prepare WebSocket message for the Guard Monitor
-		GateEvent wsMessage = new GateEvent(
-				employee.getUser().getId().toString(),
-				employee.getId().toString(),
-				employee.getUser().getFirstName(),
-				employee.getUser().getLastName(),
-				employee.getCreatedAt().toString(),
-				employee.getGrantedAccessAt() != null ? employee.getGrantedAccessAt().toString() : null,
-				employee.isAccessActive(),
-				employee.getDivisionId().toString(),
-				employee.getBluetoothSecurityCode(),
-				result.name(),
-				direction.name(),
-				LocalDateTime.now().toString()
-		);
+        accessLogRepository.save(AccessLog.builder()
+                .employeeId(employee.getId())
+                .eventType(eventType)
+                .accessMethod(request.getAccessMethod())
+                .isAuthorized(authorized)
+                .outOfSchedule(!authorized)
+                .carPlateSeen(request.getCarPlateSeen())
+                .eventAt(OffsetDateTime.now())
+                .syncedToCloud(true)
+                .build());
 
-		// Broadcast to all listening guardians
-		messagingTemplate.convertAndSend("/topic/monitor", wsMessage);
+        GateEvent wsMessage = new GateEvent(
+                employee.getId().toString(),
+                employee.getFirstName(),
+                employee.getLastName(),
+                employee.getPhotoUrl(),
+                employee.getBadgeNumber(),
+                employee.getDivisionId().toString(),
+                employee.isAccessActive(),
+                authorized ? "GRANTED" : "DENIED",
+                eventType,
+                OffsetDateTime.now().toString()
+        );
+        messagingTemplate.convertAndSend("/topic/monitor", wsMessage);
 
-		return ResponseEntity.ok(new GateResponse(result.name(), allowed ? "Access granted" : "Access denied due to schedule or status"));
-	}
+        return ResponseEntity.ok(new GateResponse(
+                authorized ? "GRANTED" : "DENIED",
+                authorized ? "Access granted" : "Access denied — outside schedule or inactive"
+        ));
+    }
 
-	@Getter
-	@Setter
-	@NoArgsConstructor
-	public static class GateRequest {
-		private String bluetoothSecurityCode;
-		private String badgeNumber;
-		private String direction; // "ENTRY" or "EXIT"
-	}
+    @Getter @Setter @NoArgsConstructor
+    public static class GateRequest {
+        private String bluetoothSecurityCode;
+        private String badgeNumber;
+        private String direction;    // "ENTRY" or "EXIT"
+        private String accessMethod; // "bluetooth_pc" or "bluetooth_esp32"
+        private String carPlateSeen;
+    }
 
-	@Getter
-	@RequiredArgsConstructor
-	public static class GateResponse {
-		private final String status; // "GRANTED" or "DENIED"
-		private final String message;
-	}
+    @Getter @RequiredArgsConstructor
+    public static class GateResponse {
+        private final String status;
+        private final String message;
+    }
 
-	@Getter
-	@RequiredArgsConstructor
-	public static class GateEvent {
-		private final String userId;
-		private final String employeeId;
-		private final String firstName;
-		private final String lastName;
-		private final String createdAt;
-		private final String accessGrantedAt;
-		private final boolean isAccessActive;
-		private final String divisionId;
-		private final String bluetoothSecurityCode;
-		private final String result;
-		private final String direction;
-		private final String timestamp;
-	}
+    @Getter @RequiredArgsConstructor
+    public static class GateEvent {
+        private final String employeeId;
+        private final String firstName;
+        private final String lastName;
+        private final String photoUrl;
+        private final String badgeNumber;
+        private final String divisionId;
+        private final boolean isAccessActive;
+        private final String result;
+        private final String direction;
+        private final String timestamp;
+    }
 }

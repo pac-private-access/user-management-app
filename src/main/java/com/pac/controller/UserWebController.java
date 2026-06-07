@@ -1,54 +1,64 @@
 package com.pac.controller;
 
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
-import com.pac.entity.Employee;
-import com.pac.repository.EmployeeRepository;
+import com.pac.entity.User;
+import com.pac.repository.AccessLogRepository;
+import com.pac.repository.UserRepository;
 
-import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 
 @Controller
+@RequiredArgsConstructor
 public class UserWebController {
 
-	private final EmployeeRepository employeeRepository;
-	private final PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
+    private final AccessLogRepository accessLogRepository;
 
-	public UserWebController(EmployeeRepository employeeRepository, PasswordEncoder passwordEncoder) {
-		this.employeeRepository = employeeRepository;
-		this.passwordEncoder = passwordEncoder;
-	}
+    @GetMapping("/login")
+    public String showLoginPage() { return "login"; }
 
-	@GetMapping("/users")
-	public String users() {
-		return "users";
-	}
+    @GetMapping("/users")
+    public String users(Model model) {
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        OffsetDateTime startOfToday = now.toLocalDate().atStartOfDay().atOffset(ZoneOffset.UTC);
+        OffsetDateTime endOfToday = startOfToday.plusDays(1);
 
-	@GetMapping("/login")
-	public String showLoginPage() { return "login"; }
+        List<User> users = userRepository.findAll();
 
-	@PostMapping("/users")
-	public String saveUser(@ModelAttribute Employee employee) {
-		employeeRepository.save(employee);
-		return "redirect:/users";
-	}
+        // Pre-compute role strings so template doesn't have to iterate collections
+        Map<UUID, String> rolesByUserId = users.stream().collect(Collectors.toMap(
+            User::getId,
+            u -> u.getRoles().isEmpty() ? "—"
+                : u.getRoles().stream().map(r -> r.getName()).collect(Collectors.joining(", "))
+        ));
 
-	@PostMapping("/login")
-	public String login(@RequestParam String email, @RequestParam String parola, HttpSession session) {
+        model.addAttribute("users", users);
+        model.addAttribute("rolesByUserId", rolesByUserId);
+        model.addAttribute("activeWebUsers", userRepository.countActive(true));
+        model.addAttribute("entriesToday", accessLogRepository.countEntries("entry", startOfToday, endOfToday));
+        model.addAttribute("refusedToday", accessLogRepository.countEntriesByAuth("entry", false, startOfToday, endOfToday));
 
-		Employee employee = employeeRepository.findByUserEmail(email)
-				.orElseThrow(() -> new UsernameNotFoundException(email));
+        String lastAccess = accessLogRepository.findLatest()
+            .map(log -> {
+                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("HH:mm");
+                return log.getEventAt().atZoneSameInstant(ZoneOffset.UTC).format(fmt);
+            })
+            .orElse("—");
+        model.addAttribute("lastAccess", lastAccess);
 
-		if (employee != null && passwordEncoder.matches(parola, employee.getUser().getPasswordHash())) {
-			session.setAttribute("user", employee);
-			return "redirect:/users";
-		}
-
-		return "redirect:/login";
-	}
+        return "users";
+    }
 }

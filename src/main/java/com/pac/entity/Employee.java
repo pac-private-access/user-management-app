@@ -1,15 +1,10 @@
 package com.pac.entity;
 
-import java.time.LocalDateTime;
-import java.util.Set;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Getter
@@ -19,42 +14,53 @@ import lombok.Setter;
 @Builder
 @Table(name = "employees")
 public class Employee {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
-    private User user;
-    
-    @Column(unique = true, nullable = false)
+
+    @Column(name = "last_name", nullable = false)
+    private String lastName;
+
+    @Column(name = "first_name", nullable = false)
+    private String firstName;
+
+    @Column(unique = true, nullable = false, length = 13)
     private String cnp;
-    
-    @Column(name = "badge_number", nullable = false)
+
+    @Column(name = "photo_url")
+    private String photoUrl;
+
+    @Column(name = "badge_number", unique = true, nullable = false)
     private String badgeNumber;
-    
-    @Column(name = "bluetooth_security_code", nullable = false)
-    private String bluetoothSecurityCode;
-    
-    @Column(name = "car_plate")
-    private String carPlate;
-    
+
     @Column(name = "division_id", nullable = false)
     private UUID divisionId;
-    
+
+    @Column(name = "bluetooth_security_code", unique = true, nullable = false)
+    private String bluetoothSecurityCode;
+
+    @Column(name = "car_plate")
+    private String carPlate;
+
     @Column(name = "is_access_active", nullable = false)
     private boolean isAccessActive;
-    
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
-    
-    @Column(name = "granted_access_at")
-    private LocalDateTime grantedAccessAt;
-    
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "employee_roles", joinColumns = @JoinColumn(name = "employee_id"))
-    @Column(name = "role")
-    @Enumerated(EnumType.STRING)
-    private Set<EmployeeRole> roles;
+
+    @Column(name = "access_granted_by")
+    private UUID accessGrantedBy;
+
+    @Column(name = "access_granted_by_cnp")
+    private String accessGrantedByCnp;
+
+    @Column(name = "access_granted_by_badge")
+    private String accessGrantedByBadge;
+
+    @Column(name = "access_granted_at")
+    private OffsetDateTime accessGrantedAt;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private OffsetDateTime updatedAt;
 }

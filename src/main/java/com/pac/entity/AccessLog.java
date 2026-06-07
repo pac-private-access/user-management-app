@@ -1,24 +1,10 @@
 package com.pac.entity;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
 @Getter
@@ -33,18 +19,33 @@ public class AccessLog {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id", nullable = false)
-    private Employee employee;
+    // Nullable: unknown badge/bluetooth code logs as null
+    @Column(name = "employee_id")
+    private UUID employeeId;
 
-    @Column(name = "timestamp", nullable = false)
-    private LocalDateTime timestamp;
+    // 'entry' or 'exit'
+    @Column(name = "event_type", nullable = false)
+    private String eventType;
 
-    @Column(name = "direction", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private AccessDirection direction;
+    // 'bluetooth_pc' or 'bluetooth_esp32'
+    @Column(name = "access_method", nullable = false)
+    private String accessMethod;
 
-    @Column(name = "result", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private AccessResult result;
+    @Column(name = "is_authorized", nullable = false)
+    private boolean isAuthorized;
+
+    @Column(name = "out_of_schedule", nullable = false)
+    private boolean outOfSchedule;
+
+    @Column(name = "override_by")
+    private UUID overrideBy;
+
+    @Column(name = "car_plate_seen")
+    private String carPlateSeen;
+
+    @Column(name = "event_at", nullable = false)
+    private OffsetDateTime eventAt;
+
+    @Column(name = "synced_to_cloud", nullable = false)
+    private boolean syncedToCloud;
 }
