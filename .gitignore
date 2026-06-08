@@ -36,4 +36,5 @@ build/
 .vscode/
 
 ### Secrets ###
-src/main/resources/application.properties
+# application.properties included intentionally for team testing
+# Remove from git and rotate DB password before going to production
