@@ -14,8 +14,10 @@ import com.pac.entity.AccessDirection;
 import com.pac.entity.AccessLog;
 import com.pac.entity.AccessResult;
 import com.pac.entity.Employee;
+import com.pac.entity.AccessSchedule;
 import com.pac.repository.AccessLogRepository;
 import com.pac.repository.EmployeeRepository;
+import com.pac.repository.ScheduleRepository;
 import com.pac.service.EmployeeService;
 
 import lombok.Getter;
@@ -32,6 +34,7 @@ public class GateApiController {
 	private final EmployeeService employeeService;
 	private final AccessLogRepository accessLogRepository;
 	private final SimpMessagingTemplate messagingTemplate;
+	private final ScheduleRepository scheduleRepository;
 
 	@PostMapping("/authorize")
 	public ResponseEntity<?> authorize(@RequestBody GateRequest request) {
@@ -61,6 +64,15 @@ public class GateApiController {
 				.build();
 		accessLogRepository.save(log);
 
+		java.util.List<AccessSchedule> schedules = scheduleRepository.findByEmployee(employee);
+		java.util.List<GateEvent.ScheduleInfo> scheduleData = schedules.stream()
+				.map(s -> new GateEvent.ScheduleInfo(
+						s.getDaysOfWeek().stream().map(Enum::name).collect(java.util.stream.Collectors.toSet()),
+						s.getTimeFrom().toString(),
+						s.getTimeTo().toString()
+				))
+				.toList();
+
 		// Prepare WebSocket message for the Guard Monitor
 		GateEvent wsMessage = new GateEvent(
 				employee.getUser().getId().toString(),
@@ -74,7 +86,8 @@ public class GateApiController {
 				employee.getBluetoothSecurityCode(),
 				result.name(),
 				direction.name(),
-				LocalDateTime.now().toString()
+				LocalDateTime.now().toString(),
+				scheduleData
 		);
 
 		// Broadcast to all listening guardians
@@ -114,5 +127,14 @@ public class GateApiController {
 		private final String result;
 		private final String direction;
 		private final String timestamp;
+		private final java.util.List<ScheduleInfo> scheduleData;
+
+		@Getter
+		@RequiredArgsConstructor
+		public static class ScheduleInfo {
+			private final java.util.Set<String> daysOfWeek;
+			private final String timeFrom;
+			private final String timeTo;
+		}
 	}
 }

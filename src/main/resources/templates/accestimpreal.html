@@ -52,60 +52,73 @@
     <div class="content">
 
         <table class="table">
-
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Utilizator</th>
-            <th>Zonă</th>
-            <th>Ora</th>
-            <th>Status</th>
-            <th>Acțiuni</th>
-        </tr>
-    </thead>
-
-        <tbody>
-
+        <thead>
             <tr>
-                <td>1</td>
-                <td>Ion Popescu</td>
-                <td>Laborator 1</td>
-                <td>14:05</td>
-
-                <td>
-                    <span class="badge bg-warning">
-                        În așteptare
-                    </span>
-                </td>
-
-                <td>
-                    <button class="btn btn-success btn-sm">
-                        Acceptă
-                    </button>
-
-                    <button class="btn btn-danger btn-sm">
-                        Refuză
-                    </button>
-                </td>
+                <th>Nume</th>
+                <th>Departament</th>
+                <th>Direcție</th>
+                <th>Ora</th>
+                <th>Status</th>
             </tr>
-
+        </thead>
+        <tbody>
+            <tr th:each="log : ${recentLogs}">
+                <td th:text="${log.employee.firstName + ' ' + log.employee.lastName}">Nume</td>
+                <td th:text="${log.employee.department}">Departament</td>
+                <td th:text="${log.direction}">Direcție</td>
+                <td th:text="${#dates.format(log.timestamp, 'HH:mm')}">Ora</td>
+                <td th:text="${log.result}">Status</td>
+            </tr>
         </tbody>
-
     </table>
 
     </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
     <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const socket = new SockJS('/ws/monitor');
+        const stompClient = Stomp.over(socket);
+        stompClient.connect({}, function(frame) {
+            stompClient.subscribe('/topic/monitor', function(message) {
+                const event = JSON.parse(message.body);
+                const tbody = document.querySelector('table.table tbody');
+                const row = document.createElement('tr');
 
-    const theme =
-        localStorage.getItem('theme');
+                const nameTd = document.createElement('td');
+                nameTd.textContent = event.employeeFirstName + ' ' + event.employeeLastName;
 
-    if(theme === 'dark'){
-        document.body.classList.add(
-            'dark-mode'
-        );
+                const deptTd = document.createElement('td');
+                deptTd.textContent = event.department || 'N/A';
+
+                const directionTd = document.createElement('td');
+                directionTd.textContent = event.direction;
+
+                const timeTd = document.createElement('td');
+                timeTd.textContent = event.timestamp;
+
+                const statusTd = document.createElement('td');
+                statusTd.textContent = event.result;
+
+                row.appendChild(nameTd);
+                row.appendChild(deptTd);
+                row.appendChild(directionTd);
+                row.appendChild(timeTd);
+                row.appendChild(statusTd);
+                tbody.prepend(row);
+                while (tbody.children.length > 15) {
+                    tbody.removeChild(tbody.lastChild);
+                }
+            });
+        });
+    });
+    </script>
+    <script>
+    const theme = localStorage.getItem('theme');
+    if (theme === 'dark') {
+        document.body.classList.add('dark-mode');
     }
-
     </script>
 </body>
 </html>

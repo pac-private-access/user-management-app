@@ -7,6 +7,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class UserManagementApp {
 
 	public static void main(String[] args) {
+		System.out.println("DATABASE USERNAME=" + System.getenv("DATABASE_USER"));
+		System.out.println("DATABASE PASSWORD=" + System.getenv("DATABASE_PASSWORD"));
 		SpringApplication.run(UserManagementApp.class, args);
 	}
 

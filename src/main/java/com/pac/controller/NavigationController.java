@@ -1,15 +1,20 @@
-package PAC.demo.controller;
+package com.pac.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+
+import com.pac.repository.AccessLogRepository;
 
 import org.springframework.ui.Model;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
-import PAC.demo.model.User;
-import PAC.demo.repository.UserRepository;
-import jakarta.servlet.http.HttpSession;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import lombok.RequiredArgsConstructor;
 
 
-    @Controller
+@RequiredArgsConstructor
+@Controller
 public class NavigationController {
+    private final AccessLogRepository accessLogRepository;
 
     @GetMapping("/dashboard")
     public String dashboard() {
@@ -35,7 +40,8 @@ public class NavigationController {
     }
 
     @GetMapping("/accestimpreal")
-    public String accestimpreal() {
+    public String accestimpreal(Model model) {
+        model.addAttribute("recentLogs", accessLogRepository.findAll(PageRequest.of(0, 15, Sort.by(Sort.Direction.DESC, "timestamp"))).getContent());
         return "accestimpreal";
     }
     
@@ -43,11 +49,5 @@ public class NavigationController {
     @GetMapping("/settings")
     public String settings() {
         return "settings";
-    }
-
-
-    @GetMapping("/logout")
-    public String logout() {
-        return "redirect:/login";
     }
 }

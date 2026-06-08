@@ -37,18 +37,4 @@ public class UserWebController {
 		employeeRepository.save(employee);
 		return "redirect:/users";
 	}
-
-	@PostMapping("/login")
-	public String login(@RequestParam String email, @RequestParam String parola, HttpSession session) {
-
-		Employee employee = employeeRepository.findByUserEmail(email)
-				.orElseThrow(() -> new UsernameNotFoundException(email));
-
-		if (employee != null && passwordEncoder.matches(parola, employee.getUser().getPasswordHash())) {
-			session.setAttribute("user", employee);
-			return "redirect:/users";
-		}
-
-		return "redirect:/login";
-	}
 }

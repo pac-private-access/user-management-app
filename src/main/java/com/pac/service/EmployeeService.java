@@ -35,12 +35,13 @@ public class EmployeeService {
 		}
 
 		LocalDateTime now = LocalDateTime.now();
+		java.time.LocalTime currentTime = now.toLocalTime();
 		List<AccessSchedule> schedules = scheduleRepo.findByEmployee(employee);
 
 		for (AccessSchedule schedule : schedules) {
 			if (schedule.getDaysOfWeek().contains(now.getDayOfWeek())
-					&& now.toLocalTime().isAfter(schedule.getTimeFrom())
-					&& now.toLocalTime().isBefore(schedule.getTimeTo())) {
+					&& !currentTime.isBefore(schedule.getTimeFrom())
+					&& !currentTime.isAfter(schedule.getTimeTo())) {
 				return true;
 			}
 		}

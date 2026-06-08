@@ -57,4 +57,7 @@ public class Employee {
     @Column(name = "role")
     @Enumerated(EnumType.STRING)
     private Set<EmployeeRole> roles;
+
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<AccessSchedule> schedules;
 }

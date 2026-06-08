@@ -1,11 +1,10 @@
-package PAC.demo.controller;
+package com.pac.controller;
 
-import org.springframework.ui.Model;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
-import PAC.demo.model.User;
-import PAC.demo.repository.UserRepository;
-import jakarta.servlet.http.HttpSession;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 
 @Controller
