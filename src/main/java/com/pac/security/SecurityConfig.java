@@ -30,6 +30,16 @@ public class SecurityConfig {
   public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
     http.securityMatcher("/api/**")
         .csrf(csrf -> csrf.disable())
+        .cors(
+            cors ->
+                cors.configurationSource(
+                    request -> {
+                      var config = new org.springframework.web.cors.CorsConfiguration();
+                      config.addAllowedOriginPattern("*");
+                      config.addAllowedMethod("*");
+                      config.addAllowedHeader("*");
+                      return config;
+                    }))
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
@@ -37,13 +47,12 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/gate/authorize")
                     .permitAll()
+                    .requestMatchers("/api/mobile/**")
+                    .permitAll()
                     .requestMatchers("/api/admin/**")
                     .hasRole("ADMIN")
                     .requestMatchers("/api/guard/**")
                     .hasAnyRole("GUARD", "ADMIN")
-                    .requestMatchers(
-                        "/login", "/css/**", "/js/**", "/*.png", "/*.css", "/style.css")
-                    .permitAll()
                     .anyRequest()
                     .authenticated())
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

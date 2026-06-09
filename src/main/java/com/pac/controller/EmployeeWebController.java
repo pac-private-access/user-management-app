@@ -85,10 +85,10 @@ public class EmployeeWebController {
                 dto.setPhotoUrl(savePhoto(photoFile));
             }
 
-            // Record who granted access
+            // Record who granted access (stored as plain string — FK is employees→employees)
             if (dto.isAccessActive() && principal != null) {
                 userRepository.findByEmail(principal.getUsername())
-                        .ifPresent(u -> dto.setAccessGrantedBy(u.getId()));
+                        .ifPresent(u -> dto.setAccessGrantedByName(u.getFullName()));
             }
 
             employeeService.addEmployee(dto);
