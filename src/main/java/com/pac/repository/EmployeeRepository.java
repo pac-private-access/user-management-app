@@ -10,7 +10,7 @@ import com.pac.entity.Employee;
 
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
-    Optional<Employee> findByUserEmail(String email);
     Optional<Employee> findByBluetoothSecurityCode(String bluetoothSecurityCode);
     Optional<Employee> findByBadgeNumber(String badgeNumber);
+    long countByIsAccessActive(boolean isAccessActive);
 }

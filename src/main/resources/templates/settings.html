@@ -1,150 +1,107 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Gestionare Utilizatori</title>
-
+    <title>Setări - PAC</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
-
-    
-
 </head>
 <body>
 
-    <div class="sidebar">
+<div class="sidebar">
 
-        <h4>Private Access PAC</h4>
-
-        <a href="/dashboard" class="menu-item">
-            <i class="fa-solid fa-house"></i>
-            Dashboard
-        </a>
-
-        <a href="/users" class="menu-item">
-            <i class="fa-solid fa-users"></i>
-            Utilizatori
-        </a>
-
-        <a href="/rapoarte" class="menu-item">
-            <i class="fa-solid fa-chart-column"></i>
-            Rapoarte
-        </a>
-
-        <a href="/accestimpreal" class="menu-item">
-            <i class="fa-solid fa-broadcast-tower"></i>
-            Acces in timp real
-        </a>
-
-        <a href="/settings" class="menu-item">
-            <i class="fa-solid fa-gear"></i>
-            Setări
-        </a>
-
-
-        <a href="/logout" class="menu-item">
-            <i class="fa-solid fa-right-from-bracket"></i>
-            Deconectare
-        </a>
-
+    <div class="sidebar-header">
+        <img src="\Pac_Logo_fara fundal.png" alt="PAC Logo" class="sidebar-logo">
+        <div class="sidebar-title">
+            <h5>Private Access PAC</h5>
+        </div>
     </div>
-    <div class="content">
 
-        <h2>Setari</h2>
+    <a href="/dashboard" class="menu-item">
+        <i class="fa-solid fa-house"></i>
+        Dashboard
+    </a>
+    <a href="/users" class="menu-item">
+        <i class="fa-solid fa-users"></i>
+        Utilizatori
+    </a>
+    <a href="/rapoarte" class="menu-item">
+        <i class="fa-solid fa-chart-column"></i>
+        Rapoarte
+    </a>
+    <a href="/accestimpreal" class="menu-item">
+        <i class="fa-solid fa-broadcast-tower"></i>
+        Acces in timp real
+    </a>
+    <a href="/settings" class="menu-item">
+        <i class="fa-solid fa-gear"></i>
+        Setări
+    </a>
+    <a href="/logout" class="menu-item">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        Deconectare
+    </a>
 
-        <div class="row mt-4">
+</div>
 
-            <div>
-                <label>Nume</label>
-                <input class="form-control" value="Administrator" readonly>
-            </div>
+<div class="content">
 
-            <div>
-                <label>Email</label>
-                <input class="form-control" value="admin@pac.ro" readonly>
-            </div>
+    <h2>Setări</h2>
 
-            <div>
-                <label>Rol</label>
-                <input class="form-control" value="Administrator" readonly>
-            </div>
+    <div class="row mt-4" style="max-width: 500px;">
 
-            <div>
-                <label>Ultima autentificare</label>
-                <input class="form-control" value="04.06.2026 15:20" readonly>
-            </div>
-
-            <div class="form-check">
-                <input class="form-check-input"
-                    type="radio"
-                    name="theme"
-                    id="lightTheme"
-                    checked>
-
-                <label class="form-check-label" for="lightTheme">
-                    Temă deschisă
-                </label>
-            </div>
-
-            <div class="form-check">
-                <input class="form-check-input"
-                    type="radio"
-                    name="theme"
-                    id="darkTheme">
-
-                <label class="form-check-label" for="darkTheme">
-                    Temă închisă
-                </label>
-            </div>
-            <button id="saveTheme"
-                    class="btn btn-primary">
-                Salvează
-            </button>
+        <div class="mb-3">
+            <label class="form-label">Nume</label>
+            <input class="form-control" th:value="${currentUserName}" readonly>
         </div>
 
-    <script>
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input class="form-control" th:value="${currentUserEmail}" readonly>
+        </div>
 
-    const lightTheme =
-        document.getElementById('lightTheme');
+        <div class="mb-3">
+            <label class="form-label">Rol</label>
+            <input class="form-control" th:value="${currentUserRoles}" readonly>
+        </div>
 
-    const darkTheme =
-        document.getElementById('darkTheme');
+        <hr class="my-4">
 
-    const saveButton =
-        document.getElementById('saveTheme');
+        <div class="mb-2">
+            <label class="form-label">Temă</label>
+        </div>
 
-    saveButton.addEventListener('click', () => {
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="theme" id="lightTheme" checked>
+            <label class="form-check-label" for="lightTheme">Temă deschisă</label>
+        </div>
 
-        if(darkTheme.checked){
-            localStorage.setItem(
-                'theme',
-                'dark'
-            );
-        }
-        else{
-            localStorage.setItem(
-                'theme',
-                'light'
-            );
-        }
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="radio" name="theme" id="darkTheme">
+            <label class="form-check-label" for="darkTheme">Temă închisă</label>
+        </div>
 
+        <div>
+            <button id="saveTheme" class="btn btn-primary">Salvează tema</button>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    const lightTheme = document.getElementById('lightTheme');
+    const darkTheme  = document.getElementById('darkTheme');
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark') darkTheme.checked = true;
+
+    document.getElementById('saveTheme').addEventListener('click', () => {
+        localStorage.setItem('theme', darkTheme.checked ? 'dark' : 'light');
         location.reload();
-
     });
 
-    </script>
-    
-    <script>
+    if (saved === 'dark') document.body.classList.add('dark-mode');
+</script>
 
-    const theme =
-        localStorage.getItem('theme');
-
-    if(theme === 'dark'){
-        document.body.classList.add(
-            'dark-mode'
-        );
-    }
-
-    </script>
 </body>
 </html>
