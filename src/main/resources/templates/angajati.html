@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <title>Angajați - PAC</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -8,45 +9,7 @@
 </head>
 <body>
 
-<div class="sidebar">
-
-    <div class="sidebar-header">
-        <img src="/Pac_Logo_fara fundal.png" alt="PAC Logo" class="sidebar-logo">
-        <div class="sidebar-title">
-            <h5>Private Access PAC</h5>
-        </div>
-    </div>
-
-    <a href="/dashboard" class="menu-item">
-        <i class="fa-solid fa-house"></i>
-        Dashboard
-    </a>
-    <a href="/users" class="menu-item">
-        <i class="fa-solid fa-users"></i>
-        Utilizatori
-    </a>
-    <a href="/angajati" class="menu-item active-menu-item">
-        <i class="fa-solid fa-id-badge"></i>
-        Angajați
-    </a>
-    <a href="/rapoarte" class="menu-item">
-        <i class="fa-solid fa-chart-column"></i>
-        Rapoarte
-    </a>
-    <a href="/accestimpreal" class="menu-item">
-        <i class="fa-solid fa-broadcast-tower"></i>
-        Acces in timp real
-    </a>
-    <a href="/settings" class="menu-item">
-        <i class="fa-solid fa-gear"></i>
-        Setări
-    </a>
-    <a href="/logout" class="menu-item">
-        <i class="fa-solid fa-right-from-bracket"></i>
-        Deconectare
-    </a>
-
-</div>
+<div th:replace="~{fragments/sidebar :: sidebar('angajati')}"></div>
 
 <div class="content">
 
@@ -55,11 +18,11 @@
     <!-- Flash messages -->
     <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show mt-3" role="alert">
         <span th:text="${successMessage}"></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Închide"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
         <span th:text="${errorMessage}"></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Închide"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 
     <!-- Stats -->
@@ -89,21 +52,31 @@
         <table class="table table-striped">
             <thead>
                 <tr>
+                    <th>Foto</th>
                     <th>Nume complet</th>
                     <th>Badge #</th>
                     <th>Divizie</th>
+                    <th>Nr. mașină</th>
                     <th>Status acces</th>
                     <th>Acțiuni</th>
                 </tr>
             </thead>
             <tbody>
                 <tr th:if="${#lists.isEmpty(employees)}">
-                    <td colspan="5" class="text-muted">Nu există angajați înregistrați.</td>
+                    <td colspan="7" class="text-muted">Nu există angajați înregistrați.</td>
                 </tr>
                 <tr th:each="emp : ${employees}">
+                    <td>
+                        <img th:if="${emp.photoUrl != null and !emp.photoUrl.isEmpty()}"
+                             th:src="${emp.photoUrl}"
+                             alt="Foto" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+                        <i th:unless="${emp.photoUrl != null and !emp.photoUrl.isEmpty()}"
+                           class="fa-solid fa-user-circle" style="font-size:36px;color:#CBD5E1;"></i>
+                    </td>
                     <td th:text="${emp.lastName + ' ' + emp.firstName}"></td>
-                    <td th:text="${emp.badgeNumber}"></td>
+                    <td><code th:text="${emp.badgeNumber}"></code></td>
                     <td th:text="${divisionNames[emp.divisionId] ?: '—'}"></td>
+                    <td th:text="${emp.carPlate ?: '—'}"></td>
                     <td>
                         <span th:if="${emp.isAccessActive()}"    class="badge bg-success">Activ</span>
                         <span th:unless="${emp.isAccessActive()}" class="badge bg-secondary">Inactiv</span>
@@ -124,8 +97,14 @@
     <!-- Add Employee form -->
     <div class="mt-5">
         <h4>Adaugă Angajat</h4>
-        <form th:action="@{/angajati/add}" method="post" th:object="${employeeDto}"
-              style="max-width: 620px;">
+        <p class="text-muted" style="font-size:13px;">
+            Badge-ul este generat automat din numele diviziei + număr aleatoriu unic.
+        </p>
+        <form th:action="@{/angajati/add}" method="post"
+              enctype="multipart/form-data"
+              th:object="${employeeDto}"
+              style="max-width:680px;">
+
             <div class="row g-3">
 
                 <div class="col-md-6">
@@ -142,11 +121,6 @@
                     <label class="form-label">CNP *</label>
                     <input type="text" class="form-control" th:field="*{cnp}"
                            maxlength="13" placeholder="13 cifre" required>
-                </div>
-
-                <div class="col-md-6">
-                    <label class="form-label">Badge # *</label>
-                    <input type="text" class="form-control" th:field="*{badgeNumber}" required>
                 </div>
 
                 <div class="col-md-6">
@@ -174,26 +148,30 @@
                            placeholder="ex: B 123 ABC">
                 </div>
 
-                <div class="col-md-6">
-                    <label class="form-label">URL fotografie</label>
-                    <input type="text" class="form-control" th:field="*{photoUrl}"
-                           placeholder="https://...">
+                <div class="col-12">
+                    <label class="form-label">Fotografie angajat</label>
+                    <input type="file" class="form-control" name="photoFile"
+                           accept="image/*">
+                    <small class="text-muted">Opțional. Formate acceptate: JPG, PNG, WEBP.</small>
                 </div>
 
+                <!-- Access granted toggle -->
                 <div class="col-12">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox"
                                th:field="*{accessActive}" id="accessActiveCheck">
                         <label class="form-check-label" for="accessActiveCheck">
                             Acces activ la creare
+                            <small class="text-muted ms-2">
+                                (utilizatorul curent va fi înregistrat ca acordant al accesului)
+                            </small>
                         </label>
                     </div>
                 </div>
 
                 <div class="col-12">
                     <button type="submit" class="btn btn-primary">
-                        <i class="fa-solid fa-plus"></i>
-                        Adaugă angajat
+                        <i class="fa-solid fa-plus"></i> Adaugă angajat
                     </button>
                 </div>
 
@@ -205,9 +183,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    const theme = localStorage.getItem('theme');
-    if (theme === 'dark') document.body.classList.add('dark-mode');
+    if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
 </script>
-
 </body>
 </html>

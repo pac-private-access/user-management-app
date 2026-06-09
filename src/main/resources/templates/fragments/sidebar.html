@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+
+<!--
+  Sidebar fragment.
+  Usage:  <div th:replace="~{fragments/sidebar :: sidebar('dashboard')}"></div>
+  activePage values: dashboard | users | angajati | rapoarte | accestimpreal | cereri | settings
+-->
+<div th:fragment="sidebar(activePage)" class="sidebar">
+
+    <div class="sidebar-header">
+        <img src="/Pac_Logo_fara fundal.png" alt="PAC Logo" class="sidebar-logo">
+        <div class="sidebar-title"><h5>Private Access PAC</h5></div>
+    </div>
+
+    <!-- ── ADMIN-only items ─────────────────────────────────────────── -->
+    <a sec:authorize="hasRole('ADMIN')"
+       href="/dashboard"
+       class="menu-item"
+       th:classappend="${activePage == 'dashboard'} ? ' active-menu-item'">
+        <i class="fa-solid fa-house"></i> Dashboard
+    </a>
+
+    <a sec:authorize="hasRole('ADMIN')"
+       href="/users"
+       class="menu-item"
+       th:classappend="${activePage == 'users'} ? ' active-menu-item'">
+        <i class="fa-solid fa-users"></i> Utilizatori
+    </a>
+
+    <a sec:authorize="hasRole('ADMIN')"
+       href="/angajati"
+       class="menu-item"
+       th:classappend="${activePage == 'angajati'} ? ' active-menu-item'">
+        <i class="fa-solid fa-id-badge"></i> Angajați
+    </a>
+
+    <a sec:authorize="hasRole('ADMIN')"
+       href="/rapoarte"
+       class="menu-item"
+       th:classappend="${activePage == 'rapoarte'} ? ' active-menu-item'">
+        <i class="fa-solid fa-chart-column"></i> Rapoarte
+    </a>
+
+    <!-- ── Items visible to ALL authenticated roles ─────────────────── -->
+    <a href="/accestimpreal"
+       class="menu-item"
+       th:classappend="${activePage == 'accestimpreal'} ? ' active-menu-item'">
+        <i class="fa-solid fa-broadcast-tower"></i> Acces timp real
+    </a>
+
+    <a href="/cereri"
+       class="menu-item"
+       th:classappend="${activePage == 'cereri'} ? ' active-menu-item'">
+        <i class="fa-solid fa-mobile-screen"></i> Cereri acces
+        <span th:if="${pendingCount != null and pendingCount > 0}"
+              class="badge bg-danger ms-auto"
+              th:text="${pendingCount}">0</span>
+    </a>
+
+    <a href="/settings"
+       class="menu-item"
+       th:classappend="${activePage == 'settings'} ? ' active-menu-item'">
+        <i class="fa-solid fa-gear"></i> Setări
+    </a>
+
+    <a href="/logout" class="menu-item">
+        <i class="fa-solid fa-right-from-bracket"></i> Deconectare
+    </a>
+
+</div>
+</body>
+</html>

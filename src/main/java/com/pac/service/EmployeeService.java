@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -12,7 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.pac.dto.EmployeeDto;
 import com.pac.entity.AccessSchedule;
+import com.pac.entity.Division;
 import com.pac.entity.Employee;
+import com.pac.repository.DivisionRepository;
 import com.pac.repository.EmployeeRepository;
 import com.pac.repository.ScheduleRepository;
 
@@ -21,11 +24,17 @@ public class EmployeeService {
 
     private final EmployeeRepository employeeRepo;
     private final ScheduleRepository scheduleRepo;
+    private final DivisionRepository divisionRepo;
 
-    public EmployeeService(EmployeeRepository employeeRepo, ScheduleRepository scheduleRepo) {
+    public EmployeeService(EmployeeRepository employeeRepo,
+                           ScheduleRepository scheduleRepo,
+                           DivisionRepository divisionRepo) {
         this.employeeRepo = employeeRepo;
         this.scheduleRepo = scheduleRepo;
+        this.divisionRepo = divisionRepo;
     }
+
+    // ─── Access schedule check ───────────────────────────────────────────────
 
     public boolean canEnter(Employee employee) {
         if (employee == null || !employee.isAccessActive()) {
@@ -40,7 +49,7 @@ public class EmployeeService {
 
         List<AccessSchedule> schedules = scheduleRepo.findByEmployee(employee);
         for (AccessSchedule s : schedules) {
-            boolean dayMatch = s.getDayOfWeek() == null || s.getDayOfWeek() == currentDay;
+            boolean dayMatch  = s.getDayOfWeek() == null || s.getDayOfWeek() == currentDay;
             boolean timeMatch = !currentTime.isBefore(s.getTimeFrom()) && !currentTime.isAfter(s.getTimeTo());
             boolean dateMatch =
                 (s.getValidFrom() == null || !currentDate.isBefore(s.getValidFrom())) &&
@@ -52,19 +61,29 @@ public class EmployeeService {
         return false;
     }
 
+    // ─── CRUD ────────────────────────────────────────────────────────────────
+
     @Transactional
     public Employee addEmployee(EmployeeDto dto) {
         OffsetDateTime now = OffsetDateTime.now();
+
+        // Auto-generate badge number when not explicitly supplied
+        String badge = (dto.getBadgeNumber() == null || dto.getBadgeNumber().isBlank())
+                ? generateBadgeNumber(dto.getDivisionId())
+                : dto.getBadgeNumber();
+
         Employee emp = Employee.builder()
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
                 .cnp(dto.getCnp())
                 .photoUrl(dto.getPhotoUrl())
-                .badgeNumber(dto.getBadgeNumber())
+                .badgeNumber(badge)
                 .divisionId(dto.getDivisionId())
                 .bluetoothSecurityCode(dto.getBluetoothSecurityCode())
                 .carPlate(dto.getCarPlate())
                 .isAccessActive(dto.isAccessActive())
+                .accessGrantedBy(dto.isAccessActive() ? dto.getAccessGrantedBy() : null)
+                .accessGrantedAt(dto.isAccessActive() ? now : null)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -101,5 +120,32 @@ public class EmployeeService {
     @Transactional
     public void deleteEmployee(UUID id) {
         employeeRepo.deleteById(id);
+    }
+
+    // ─── Badge number generation ─────────────────────────────────────────────
+
+    /**
+     * Generates a unique badge in the form [DIV_PREFIX][4_DIGITS].
+     * e.g. division "IT Department" → "ITE1234" … "ITE9999"
+     */
+    private String generateBadgeNumber(UUID divisionId) {
+        String prefix = "EMP";
+        if (divisionId != null) {
+            Division div = divisionRepo.findById(divisionId).orElse(null);
+            if (div != null && div.getName() != null && !div.getName().isBlank()) {
+                String clean = div.getName().toUpperCase().replaceAll("[^A-Z0-9]", "");
+                prefix = clean.length() >= 3 ? clean.substring(0, 3) : clean;
+            }
+        }
+
+        Random rng = new Random();
+        String badge;
+        int attempts = 0;
+        do {
+            badge = prefix + String.format("%04d", rng.nextInt(10_000));
+            attempts++;
+        } while (employeeRepo.findByBadgeNumber(badge).isPresent() && attempts < 100);
+
+        return badge;
     }
 }

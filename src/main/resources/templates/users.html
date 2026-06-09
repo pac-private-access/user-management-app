@@ -1,92 +1,59 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
-    <title>Gestionare Utilizatori</title>
+    <title>Gestionare Utilizatori - PAC</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
-<div class="sidebar">
-
-    <div class="sidebar-header">
-        <img src="/Pac_Logo_fara fundal.png" alt="PAC Logo" class="sidebar-logo">
-        <div class="sidebar-title">
-            <h5>Private Access PAC</h5>
-        </div>
-    </div>
-
-    <a href="/dashboard" class="menu-item">
-        <i class="fa-solid fa-house"></i>
-        Dashboard
-    </a>
-    <a href="/users" class="menu-item active-menu-item">
-        <i class="fa-solid fa-users"></i>
-        Utilizatori
-    </a>
-    <a href="/angajati" class="menu-item">
-        <i class="fa-solid fa-id-badge"></i>
-        Angajați
-    </a>
-    <a href="/rapoarte" class="menu-item">
-        <i class="fa-solid fa-chart-column"></i>
-        Rapoarte
-    </a>
-    <a href="/accestimpreal" class="menu-item">
-        <i class="fa-solid fa-broadcast-tower"></i>
-        Acces in timp real
-    </a>
-    <a href="/settings" class="menu-item">
-        <i class="fa-solid fa-gear"></i>
-        Setări
-    </a>
-    <a href="/cereri" class="menu-item">
-        <i class="fa-solid fa-mobile-screen"></i> Cereri acces
-    </a>
-    <a href="/logout" class="menu-item">
-        <i class="fa-solid fa-right-from-bracket"></i>
-        Deconectare
-    </a>
-
-</div>
+<div th:replace="~{fragments/sidebar :: sidebar('users')}"></div>
 
 <div class="content">
 
     <h2>Gestionare Utilizatori</h2>
 
-    <div class="row mt-4">
+    <!-- Flash messages -->
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+        <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
 
+    <!-- Stats -->
+    <div class="row mt-4">
         <div class="col-md-3">
             <div class="card card-stat p-3">
                 <h3 th:text="${activeWebUsers}">0</h3>
                 <p>Utilizatori activi</p>
             </div>
         </div>
-
         <div class="col-md-3">
             <div class="card card-stat p-3">
                 <h3 th:text="${entriesToday}">0</h3>
                 <p>Accesări azi</p>
             </div>
         </div>
-
         <div class="col-md-3">
             <div class="card card-stat p-3">
                 <h3 th:text="${refusedToday}">0</h3>
                 <p>Tentative refuzate</p>
             </div>
         </div>
-
         <div class="col-md-3">
             <div class="card card-stat p-3">
                 <h3 th:text="${lastAccess}">—</h3>
                 <p>Ultima accesare</p>
             </div>
         </div>
-
     </div>
 
+    <!-- User table -->
     <div class="mt-4">
         <table class="table table-striped">
             <thead>
@@ -99,14 +66,14 @@
             </thead>
             <tbody>
                 <tr th:if="${#lists.isEmpty(users)}">
-                    <td colspan="4">Nu există utilizatori înregistrați</td>
+                    <td colspan="4" class="text-muted">Nu există utilizatori înregistrați</td>
                 </tr>
                 <tr th:each="user : ${users}">
                     <td th:text="${user.fullName}"></td>
                     <td th:text="${user.email}"></td>
                     <td th:text="${rolesByUserId[user.id]}">—</td>
                     <td>
-                        <span th:if="${user.isActive()}"  class="badge bg-success">Activ</span>
+                        <span th:if="${user.isActive()}"    class="badge bg-success">Activ</span>
                         <span th:unless="${user.isActive()}" class="badge bg-secondary">Inactiv</span>
                     </td>
                 </tr>
@@ -114,14 +81,71 @@
         </table>
     </div>
 
+    <!-- Add user form (ADMIN only) -->
+    <div class="mt-5" sec:authorize="hasRole('ADMIN')">
+        <h4>Adaugă Utilizator Web</h4>
+        <p class="text-muted" style="font-size:13px;">
+            Utilizatorii web sunt admini sau portari care se autentifică în această interfață.
+        </p>
+        <form th:action="@{/users/add}" method="post" style="max-width:620px;">
+
+            <div class="row g-3">
+
+                <div class="col-md-6">
+                    <label class="form-label">Nume complet *</label>
+                    <input type="text" class="form-control" name="fullName"
+                           placeholder="ex: Ion Popescu" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Email *</label>
+                    <input type="email" class="form-control" name="email"
+                           placeholder="ion.popescu@pac.ro" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Parolă *</label>
+                    <input type="password" class="form-control" name="password"
+                           placeholder="Minim 6 caractere" minlength="6" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Rol *</label>
+                    <select class="form-select" name="roleId" required>
+                        <option value="">— Selectează rol —</option>
+                        <option th:each="role : ${roles}"
+                                th:value="${role.id}"
+                                th:text="${role.name}">
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Divizie</label>
+                    <select class="form-select" name="divisionId">
+                        <option value="">— Fără divizie —</option>
+                        <option th:each="div : ${divisions}"
+                                th:value="${div.id}"
+                                th:text="${div.name}">
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-user-plus"></i> Adaugă utilizator
+                    </button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    const theme = localStorage.getItem('theme');
-    if (theme === 'dark') {
-        document.body.classList.add('dark-mode');
-    }
+    if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
 </script>
-
 </body>
 </html>
