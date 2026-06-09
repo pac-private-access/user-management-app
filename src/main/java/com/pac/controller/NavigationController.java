@@ -1,15 +1,14 @@
 package com.pac.controller;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -27,116 +26,128 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class NavigationController {
 
-    private final EmployeeRepository employeeRepo;
-    private final AccessLogRepository logRepo;
-    private final UserRepository userRepo;
+  private final EmployeeRepository employeeRepository;
+  private final AccessLogRepository accessLogRepository;
+  private final UserRepository userRepository;
 
-    @GetMapping("/dashboard")
-    public String dashboard(Model model) {
-        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-        OffsetDateTime startOfToday = now.toLocalDate().atStartOfDay().atOffset(ZoneOffset.UTC);
-        OffsetDateTime endOfToday = startOfToday.plusDays(1);
+  // ─── Dashboard ───────────────────────────────────────────────────────────
+  @GetMapping("/dashboard")
+  public String dashboard(Model model, @AuthenticationPrincipal UserDetails principal) {
+    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+    OffsetDateTime startOfToday = now.toLocalDate().atStartOfDay().atOffset(ZoneOffset.UTC);
+    OffsetDateTime endOfToday = startOfToday.plusDays(1);
+    OffsetDateTime sevenDaysAgo = startOfToday.minusDays(6);
 
-        model.addAttribute("activeEmployees", employeeRepo.countByIsAccessActive(true));
-        model.addAttribute("enteredToday", logRepo.countEntries("entry", startOfToday, endOfToday));
-        model.addAttribute("inBuildingNow", logRepo.countEmployeesCurrentlyInside());
+    // Statistici principale
+    model.addAttribute("totalAngajati", employeeRepository.count());
+    model.addAttribute("activeWebUsers", userRepository.countActive(true));
+    model.addAttribute(
+        "intrariAzi", accessLogRepository.countEntries("entry", startOfToday, endOfToday));
+    model.addAttribute(
+        "iesiriAzi", accessLogRepository.countEntries("exit", startOfToday, endOfToday));
+    model.addAttribute(
+        "refuzateAzi",
+        accessLogRepository.countEntriesByAuth("entry", false, startOfToday, endOfToday));
+    model.addAttribute("inClădireAcum", accessLogRepository.countEmployeesCurrentlyInside());
 
-        long approvedToday = logRepo.countEntriesByAuth("entry", true, startOfToday, endOfToday);
-        long refusedToday  = logRepo.countEntriesByAuth("entry", false, startOfToday, endOfToday);
-        model.addAttribute("approvedToday", approvedToday);
-        model.addAttribute("refusedToday", refusedToday);
+    // Grafic 7 zile
+    List<Object[]> perDay = accessLogRepository.countEntriesPerDayAfter(sevenDaysAgo);
+    List<String> labels = perDay.stream().map(r -> r[1].toString()).collect(Collectors.toList());
+    List<Long> values =
+        perDay.stream().map(r -> ((Number) r[0]).longValue()).collect(Collectors.toList());
+    model.addAttribute("chartLabels", labels);
+    model.addAttribute("chartValues", values);
 
-        OffsetDateTime sevenDaysAgo = startOfToday.minusDays(6);
-        List<Object[]> dailyCounts = logRepo.countEntriesPerDayAfter(sevenDaysAgo);
-        long[] weeklyData = buildWeeklyData(dailyCounts, sevenDaysAgo, 7);
-        model.addAttribute("weeklyData", weeklyData);
+    // Activitate recentă
+    List<Object[]> recent = accessLogRepository.findRecentActivity();
+    model.addAttribute("recentActivity", recent);
 
-        DateTimeFormatter labelFmt = DateTimeFormatter.ofPattern("dd.MM");
-        String[] weeklyLabels = new String[7];
-        for (int i = 0; i < 7; i++) {
-            weeklyLabels[i] = sevenDaysAgo.plusDays(i).toLocalDate().format(labelFmt);
-        }
-        model.addAttribute("weeklyLabels", weeklyLabels);
+    // User curent
+    addCurrentUser(model, principal);
 
-        List<Object[]> rawActivity = logRepo.findRecentActivity();
-        List<Map<String, String>> recentActivity = new ArrayList<>();
-        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
-        for (Object[] row : rawActivity) {
-            OffsetDateTime eventAt = ((Instant) row[0]).atOffset(ZoneOffset.UTC);
-            String eventType  = (String) row[1];
-            boolean authorized = (Boolean) row[2];
-            String name = (String) row[3];
-            Map<String, String> entry = new LinkedHashMap<>();
-            entry.put("name", name);
-            entry.put("action", "entry".equals(eventType)
-                    ? (authorized ? "Intrare" : "Intrare refuzată")
-                    : (authorized ? "Ieșire" : "Ieșire refuzată"));
-            entry.put("time", eventAt.format(timeFmt));
-            recentActivity.add(entry);
-        }
-        model.addAttribute("recentActivity", recentActivity);
+    return "dashboard";
+  }
 
-        return "dashboard";
+  // ─── Acces în timp real ───────────────────────────────────────────────────
+  @GetMapping("/accestimpreal")
+  public String accestimpreal(Model model, @AuthenticationPrincipal UserDetails principal) {
+    addCurrentUser(model, principal);
+    return "accestimpreal";
+  }
+
+  // ─── Rapoarte ─────────────────────────────────────────────────────────────
+  @GetMapping("/rapoarte")
+  public String rapoarte(
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+      Model model,
+      @AuthenticationPrincipal UserDetails principal) {
+
+    model.addAttribute("from", from);
+    model.addAttribute("to", to);
+
+    if (from != null && to != null) {
+      OffsetDateTime start = from.atStartOfDay().atOffset(ZoneOffset.UTC);
+      OffsetDateTime end = to.plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC);
+
+      List<Object[]> raw = accessLogRepository.findReportData(start, end);
+      DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+
+      List<Map<String, String>> rows =
+          raw.stream()
+              .map(
+                  r ->
+                      Map.of(
+                          "time",
+                              r[0] instanceof OffsetDateTime
+                                  ? ((OffsetDateTime) r[0])
+                                      .atZoneSameInstant(ZoneOffset.UTC)
+                                      .format(fmt)
+                                  : r[0].toString(),
+                          "employee", r[3] != null ? r[3].toString() : "Necunoscut",
+                          "division", r[4] != null ? r[4].toString() : "—",
+                          "type", "entry".equals(r[1]) ? "Intrare" : "Ieșire",
+                          "authorized",
+                              Boolean.TRUE.equals(r[2]) || "true".equals(String.valueOf(r[2]))
+                                  ? "Da"
+                                  : "Nu",
+                          "method", r[5] != null ? r[5].toString() : "—"))
+              .collect(Collectors.toList());
+
+      model.addAttribute("reportRows", rows);
     }
 
-    @GetMapping("/accestimpreal")
-    public String accestimpreal() { return "accestimpreal"; }
+    addCurrentUser(model, principal);
+    return "rapoarte";
+  }
 
-    @GetMapping("/rapoarte")
-    public String rapoarte(
-            @RequestParam(required = false) String from,
-            @RequestParam(required = false) String to,
-            Model model) {
-
-        model.addAttribute("from", from != null ? from : "");
-        model.addAttribute("to",   to   != null ? to   : "");
-
-        if (from != null && !from.isBlank() && to != null && !to.isBlank()) {
-            OffsetDateTime start = LocalDate.parse(from).atStartOfDay().atOffset(ZoneOffset.UTC);
-            OffsetDateTime end   = LocalDate.parse(to).plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC);
-
-            List<Object[]> raw = logRepo.findReportData(start, end);
-            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
-            List<Map<String, String>> rows = new ArrayList<>();
-            for (Object[] r : raw) {
-                OffsetDateTime eventAt = ((Instant) r[0]).atOffset(ZoneOffset.UTC);
-                Map<String, String> row = new LinkedHashMap<>();
-                row.put("time",       eventAt.format(fmt));
-                row.put("type",       "entry".equals(r[1]) ? "Intrare" : "Ieșire");
-                row.put("authorized", (Boolean) r[2] ? "Da" : "Nu");
-                row.put("employee",   (String) r[3]);
-                row.put("division",   (String) r[4]);
-                row.put("method",     (String) r[5]);
-                rows.add(row);
-            }
-            model.addAttribute("reportRows", rows);
-        }
-
-        return "rapoarte";
+  // ─── Setări ───────────────────────────────────────────────────────────────
+  @GetMapping("/settings")
+  public String settings(Model model, @AuthenticationPrincipal UserDetails principal) {
+    if (principal != null) {
+      userRepository
+          .findByEmail(principal.getUsername())
+          .ifPresent(
+              u -> {
+                model.addAttribute("currentUserName", u.getFullName());
+                model.addAttribute("currentUserEmail", u.getEmail());
+                model.addAttribute(
+                    "currentUserRoles",
+                    u.getRoles().stream().map(r -> r.getName()).collect(Collectors.joining(", ")));
+              });
     }
+    return "settings";
+  }
 
-    @GetMapping("/settings")
-    public String settings(@AuthenticationPrincipal UserDetails principal, Model model) {
-        userRepo.findByEmail(principal.getUsername()).ifPresent(user -> {
-            model.addAttribute("currentUserName",  user.getFullName());
-            model.addAttribute("currentUserEmail", user.getEmail());
-            String roles = user.getRoles().isEmpty() ? "—"
-                : user.getRoles().stream().map(r -> r.getName()).collect(java.util.stream.Collectors.joining(", "));
-            model.addAttribute("currentUserRoles", roles);
-        });
-        return "settings";
+  // ─── Helper ───────────────────────────────────────────────────────────────
+  private void addCurrentUser(Model model, UserDetails principal) {
+    if (principal != null) {
+      userRepository
+          .findByEmail(principal.getUsername())
+          .ifPresent(
+              u -> {
+                model.addAttribute("currentUserName", u.getFullName());
+              });
     }
-
-    private long[] buildWeeklyData(List<Object[]> dbRows, OffsetDateTime startDay, int days) {
-        Map<String, Long> countByDay = new LinkedHashMap<>();
-        for (Object[] row : dbRows) {
-            countByDay.put(row[1].toString(), ((Number) row[0]).longValue());
-        }
-        long[] result = new long[days];
-        for (int i = 0; i < days; i++) {
-            String key = startDay.plusDays(i).toLocalDate().toString();
-            result[i] = countByDay.getOrDefault(key, 0L);
-        }
-        return result;
-    }
+  }
 }
