@@ -1,0 +1,94 @@
+package com.pac.controller;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.pac.dto.EmployeeDto;
+import com.pac.entity.Division;
+import com.pac.entity.Employee;
+import com.pac.repository.DivisionRepository;
+import com.pac.repository.EmployeeRepository;
+import com.pac.service.EmployeeService;
+
+import lombok.RequiredArgsConstructor;
+
+@Controller
+@RequiredArgsConstructor
+public class EmployeeWebController {
+
+    private final EmployeeService employeeService;
+    private final EmployeeRepository employeeRepository;
+    private final DivisionRepository divisionRepository;
+
+    @GetMapping("/angajati")
+    public String angajati(Model model) {
+        List<Employee> employees = employeeService.getAllEmployees();
+        List<Division> divisions = divisionRepository.findAll();
+
+        Map<UUID, String> divisionNames = divisions.stream()
+                .collect(Collectors.toMap(Division::getId, Division::getName));
+
+        long totalEmployees  = employees.size();
+        long activeEmployees = employeeRepository.countByIsAccessActive(true);
+        long inactiveEmployees = totalEmployees - activeEmployees;
+
+        model.addAttribute("employees",        employees);
+        model.addAttribute("divisions",        divisions);
+        model.addAttribute("divisionNames",    divisionNames);
+        model.addAttribute("totalEmployees",   totalEmployees);
+        model.addAttribute("activeEmployees",  activeEmployees);
+        model.addAttribute("inactiveEmployees", inactiveEmployees);
+        model.addAttribute("employeeDto",      new EmployeeDto());
+
+        return "angajati";
+    }
+
+    @PostMapping("/angajati/add")
+    public String addEmployee(
+            @ModelAttribute("employeeDto") EmployeeDto dto,
+            RedirectAttributes redirectAttributes) {
+        try {
+            employeeService.addEmployee(dto);
+            redirectAttributes.addFlashAttribute("successMessage", "Angajat adăugat cu succes.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Eroare la adăugare: " + e.getMessage());
+        }
+        return "redirect:/angajati";
+    }
+
+    @PostMapping("/angajati/{id}/toggle-access")
+    public String toggleAccess(
+            @PathVariable UUID id,
+            RedirectAttributes redirectAttributes) {
+
+        employeeService.getEmployeeById(id).ifPresentOrElse(emp -> {
+            EmployeeDto dto = new EmployeeDto();
+            dto.setFirstName(emp.getFirstName());
+            dto.setLastName(emp.getLastName());
+            dto.setCnp(emp.getCnp());
+            dto.setPhotoUrl(emp.getPhotoUrl());
+            dto.setBadgeNumber(emp.getBadgeNumber());
+            dto.setDivisionId(emp.getDivisionId());
+            dto.setBluetoothSecurityCode(emp.getBluetoothSecurityCode());
+            dto.setCarPlate(emp.getCarPlate());
+            dto.setAccessActive(!emp.isAccessActive());
+            employeeService.updateEmployee(id, dto);
+            String state = !emp.isAccessActive() ? "activat" : "dezactivat";
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Acces " + state + " cu succes pentru " + emp.getFirstName() + " " + emp.getLastName() + ".");
+        }, () -> redirectAttributes.addFlashAttribute("errorMessage", "Angajatul nu a fost găsit."));
+
+        return "redirect:/angajati";
+    }
+}

@@ -200,3 +200,9 @@ body.dark-mode .content{
 
     font-size:12px;
 }
+
+.menu-item.active-menu-item{
+    background:#1e4a7a;
+    color:white;
+    font-weight:600;
+}
