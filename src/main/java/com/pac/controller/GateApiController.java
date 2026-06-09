@@ -4,6 +4,7 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
@@ -78,6 +79,12 @@ public class GateApiController {
             allowed ? "GRANTED" : "DENIED", 
             allowed ? "Acces permis" : "Acces refuzat", 
             allowed));
+  }
+  
+  @PostMapping("/code")
+  public ResponseEntity<Void> receive(@RequestBody String message) {
+      System.out.println("ESP32: " + message);
+      return ResponseEntity.ok().build();
   }
 
   @Getter
