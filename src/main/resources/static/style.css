@@ -206,3 +206,31 @@ body.dark-mode .content{
     color:white;
     font-weight:600;
 }
+
+/* Logout button styled as a menu item */
+.sidebar form button.menu-item{
+    color:white;
+    font-size:inherit;
+    font-family:inherit;
+    padding:12px;
+    border-radius:10px;
+    margin-bottom:8px;
+    gap:12px;
+    display:flex;
+    align-items:center;
+    transition:0.3s;
+}
+.sidebar form button.menu-item:hover{
+    background:#1e4a7a;
+}
+
+/* Page title */
+.page-title{
+    font-size:1.6rem;
+    font-weight:700;
+    color:#0f2f57;
+}
+
+body.dark-mode .page-title{
+    color:#e2e8f0;
+}

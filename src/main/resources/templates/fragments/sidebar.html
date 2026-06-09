@@ -66,9 +66,12 @@
         <i class="fa-solid fa-gear"></i> Setări
     </a>
 
-    <a href="/logout" class="menu-item">
-        <i class="fa-solid fa-right-from-bracket"></i> Deconectare
-    </a>
+    <!-- Logout as POST (required by Spring Security CSRF protection) -->
+    <form th:action="@{/logout}" method="post" style="margin:0;padding:0;">
+        <button type="submit" class="menu-item" style="width:100%;background:none;border:none;text-align:left;cursor:pointer;">
+            <i class="fa-solid fa-right-from-bracket"></i> Deconectare
+        </button>
+    </form>
 
 </div>
 </body>

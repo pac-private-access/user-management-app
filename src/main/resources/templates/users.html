@@ -124,9 +124,9 @@
                     <label class="form-label">Divizie</label>
                     <select class="form-select" name="divisionId">
                         <option value="">— Fără divizie —</option>
-                        <option th:each="div : ${divisions}"
-                                th:value="${div.id}"
-                                th:text="${div.name}">
+                        <option th:each="division : ${divisions}"
+                                th:value="${division.id}"
+                                th:text="${division.name}">
                         </option>
                     </select>
                 </div>

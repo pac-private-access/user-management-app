@@ -127,9 +127,9 @@
                     <label class="form-label">Divizie *</label>
                     <select class="form-select" th:field="*{divisionId}" required>
                         <option value="">— Selectează —</option>
-                        <option th:each="div : ${divisions}"
-                                th:value="${div.id}"
-                                th:text="${div.name}">
+                        <option th:each="division : ${divisions}"
+                                th:value="${division.id}"
+                                th:text="${division.name}">
                         </option>
                     </select>
                     <small th:if="${#lists.isEmpty(divisions)}" class="text-danger">
