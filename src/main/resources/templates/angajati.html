@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Angajați - PAC</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<div class="sidebar">
+
+    <div class="sidebar-header">
+        <img src="/Pac_Logo_fara fundal.png" alt="PAC Logo" class="sidebar-logo">
+        <div class="sidebar-title">
+            <h5>Private Access PAC</h5>
+        </div>
+    </div>
+
+    <a href="/dashboard" class="menu-item">
+        <i class="fa-solid fa-house"></i>
+        Dashboard
+    </a>
+    <a href="/users" class="menu-item">
+        <i class="fa-solid fa-users"></i>
+        Utilizatori
+    </a>
+    <a href="/angajati" class="menu-item active-menu-item">
+        <i class="fa-solid fa-id-badge"></i>
+        Angajați
+    </a>
+    <a href="/rapoarte" class="menu-item">
+        <i class="fa-solid fa-chart-column"></i>
+        Rapoarte
+    </a>
+    <a href="/accestimpreal" class="menu-item">
+        <i class="fa-solid fa-broadcast-tower"></i>
+        Acces in timp real
+    </a>
+    <a href="/settings" class="menu-item">
+        <i class="fa-solid fa-gear"></i>
+        Setări
+    </a>
+    <a href="/logout" class="menu-item">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        Deconectare
+    </a>
+
+</div>
+
+<div class="content">
+
+    <h2>Gestionare Angajați</h2>
+
+    <!-- Flash messages -->
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Închide"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+        <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Închide"></button>
+    </div>
+
+    <!-- Stats -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card card-stat p-3">
+                <h3 th:text="${totalEmployees}">0</h3>
+                <p>Total angajați</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-stat p-3">
+                <h3 th:text="${activeEmployees}">0</h3>
+                <p>Acces activ</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card card-stat p-3">
+                <h3 th:text="${inactiveEmployees}">0</h3>
+                <p>Acces inactiv</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employee table -->
+    <div class="mt-4">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Nume complet</th>
+                    <th>Badge #</th>
+                    <th>Divizie</th>
+                    <th>Status acces</th>
+                    <th>Acțiuni</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:if="${#lists.isEmpty(employees)}">
+                    <td colspan="5" class="text-muted">Nu există angajați înregistrați.</td>
+                </tr>
+                <tr th:each="emp : ${employees}">
+                    <td th:text="${emp.lastName + ' ' + emp.firstName}"></td>
+                    <td th:text="${emp.badgeNumber}"></td>
+                    <td th:text="${divisionNames[emp.divisionId] ?: '—'}"></td>
+                    <td>
+                        <span th:if="${emp.isAccessActive()}"    class="badge bg-success">Activ</span>
+                        <span th:unless="${emp.isAccessActive()}" class="badge bg-secondary">Inactiv</span>
+                    </td>
+                    <td>
+                        <form th:action="@{/angajati/{id}/toggle-access(id=${emp.id})}" method="post">
+                            <button type="submit" class="btn btn-sm"
+                                    th:classappend="${emp.isAccessActive()} ? 'btn-outline-danger' : 'btn-outline-success'"
+                                    th:text="${emp.isAccessActive()} ? 'Dezactivează' : 'Activează'">
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Add Employee form -->
+    <div class="mt-5">
+        <h4>Adaugă Angajat</h4>
+        <form th:action="@{/angajati/add}" method="post" th:object="${employeeDto}"
+              style="max-width: 620px;">
+            <div class="row g-3">
+
+                <div class="col-md-6">
+                    <label class="form-label">Prenume *</label>
+                    <input type="text" class="form-control" th:field="*{firstName}" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Nume *</label>
+                    <input type="text" class="form-control" th:field="*{lastName}" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">CNP *</label>
+                    <input type="text" class="form-control" th:field="*{cnp}"
+                           maxlength="13" placeholder="13 cifre" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Badge # *</label>
+                    <input type="text" class="form-control" th:field="*{badgeNumber}" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Divizie *</label>
+                    <select class="form-select" th:field="*{divisionId}" required>
+                        <option value="">— Selectează —</option>
+                        <option th:each="div : ${divisions}"
+                                th:value="${div.id}"
+                                th:text="${div.name}">
+                        </option>
+                    </select>
+                    <small th:if="${#lists.isEmpty(divisions)}" class="text-danger">
+                        Nu există divizii disponibile în baza de date.
+                    </small>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Cod Bluetooth *</label>
+                    <input type="text" class="form-control" th:field="*{bluetoothSecurityCode}" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Nr. mașină</label>
+                    <input type="text" class="form-control" th:field="*{carPlate}"
+                           placeholder="ex: B 123 ABC">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">URL fotografie</label>
+                    <input type="text" class="form-control" th:field="*{photoUrl}"
+                           placeholder="https://...">
+                </div>
+
+                <div class="col-12">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox"
+                               th:field="*{accessActive}" id="accessActiveCheck">
+                        <label class="form-check-label" for="accessActiveCheck">
+                            Acces activ la creare
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-plus"></i>
+                        Adaugă angajat
+                    </button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const theme = localStorage.getItem('theme');
+    if (theme === 'dark') document.body.classList.add('dark-mode');
+</script>
+
+</body>
+</html>
