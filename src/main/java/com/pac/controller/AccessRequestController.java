@@ -8,7 +8,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import com.pac.entity.Employee;
 import com.pac.entity.Smartphone;
 import com.pac.repository.EmployeeRepository;
 import com.pac.repository.SmartphoneRepository;

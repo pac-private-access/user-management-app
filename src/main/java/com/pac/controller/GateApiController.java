@@ -15,9 +15,9 @@ import com.pac.service.EmployeeService;
 
 import lombok.*;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/gate")
-@RequiredArgsConstructor
 public class GateApiController {
 
   private final EmployeeRepository employeeRepository;
@@ -26,7 +26,7 @@ public class GateApiController {
   private final SimpMessagingTemplate messagingTemplate;
 
   @PostMapping("/authorize")
-  public ResponseEntity<?> authorize(@RequestBody GateRequest request) {
+  public ResponseEntity<GateResponse> authorize(@RequestBody GateRequest request) {
     Optional<Employee> empOpt = Optional.empty();
 
     if (request.getBluetoothSecurityCode() != null
@@ -37,7 +37,7 @@ public class GateApiController {
     }
 
     if (empOpt.isEmpty()) {
-      return ResponseEntity.status(404).body(new GateResponse("DENIED", "Angajat negăsit"));
+      return ResponseEntity.status(404).body(new GateResponse("DENIED", "Angajat negăsit", false));
     }
 
     Employee employee = empOpt.get();
@@ -75,12 +75,16 @@ public class GateApiController {
 
     return ResponseEntity.ok(
         new GateResponse(
-            allowed ? "GRANTED" : "DENIED", allowed ? "Acces permis" : "Acces refuzat"));
+            allowed ? "GRANTED" : "DENIED", 
+            allowed ? "Acces permis" : "Acces refuzat", 
+            allowed));
   }
 
   @Getter
   @Setter
   @NoArgsConstructor
+  @AllArgsConstructor
+  @Builder
   public static class GateRequest {
     private String bluetoothSecurityCode;
     private String badgeNumber;
@@ -94,6 +98,7 @@ public class GateApiController {
   public static class GateResponse {
     private final String status;
     private final String message;
+    private final boolean openGate;
   }
 
   @Getter
