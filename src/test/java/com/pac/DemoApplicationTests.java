@@ -21,7 +21,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.pac.controller.GateApiController;
-import com.pac.controller.GateApiController.GateRequest;
 import com.pac.entity.Employee;
 import com.pac.repository.AccessLogRepository;
 import com.pac.repository.EmployeeRepository;

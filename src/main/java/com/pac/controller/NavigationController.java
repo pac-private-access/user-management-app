@@ -132,24 +132,24 @@ public class NavigationController {
    * Sends GET {esp32Url}/send_bt?text=OK to open the gate.
    * Called by the "Deschide poarta" button in accestimpreal.html via fetch().
    */
-  @PostMapping("/gate/trigger")
-  @ResponseBody
-  public ResponseEntity<String> triggerGate() {
-    try {
-      HttpClient client = HttpClient.newBuilder()
-          .connectTimeout(Duration.ofSeconds(5))
-          .build();
-      HttpRequest req = HttpRequest.newBuilder()
-          .uri(URI.create(esp32Url + "/send_bt?text=OK"))
-          .timeout(Duration.ofSeconds(5))
-          .GET()
-          .build();
-      HttpResponse<String> resp = client.send(req, HttpResponse.BodyHandlers.ofString());
-      log.info("Manual gate trigger — ESP32 HTTP {}", resp.statusCode());
-      return ResponseEntity.ok("Poarta a fost deschisă.");
-    } catch (Exception e) {
-      log.warn("Manual gate trigger — ESP32 unreachable: {}", e.getMessage());
-      return ResponseEntity.status(502).body("ESP32 inaccesibil: " + e.getMessage());
-    }
-  }
+//  @PostMapping("/gate/trigger")
+//  @ResponseBody
+//  public ResponseEntity<String> triggerGate() {
+//    try {
+//      HttpClient client = HttpClient.newBuilder()
+//          .connectTimeout(Duration.ofSeconds(5))
+//          .build();
+//      HttpRequest req = HttpRequest.newBuilder()
+//          .uri(URI.create(esp32Url + "/send_bt?text=OK"))
+//          .timeout(Duration.ofSeconds(5))
+//          .GET()
+//          .build();
+//      HttpResponse<String> resp = client.send(req, HttpResponse.BodyHandlers.ofString());
+//      log.info("Manual gate trigger — ESP32 HTTP {}", resp.statusCode());
+//      return ResponseEntity.ok("Poarta a fost deschisă.");
+//    } catch (Exception e) {
+//      log.warn("Manual gate trigger — ESP32 unreachable: {}", e.getMessage());
+//      return ResponseEntity.status(502).body("ESP32 inaccesibil: " + e.getMessage());
+//    }
+//  }
 }
