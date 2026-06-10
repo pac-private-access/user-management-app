@@ -45,7 +45,7 @@ public class SecurityConfig {
             auth ->
                 auth.requestMatchers("/api/auth/**")
                     .permitAll()
-                    .requestMatchers("/api/gate/authorize")
+                    .requestMatchers("/api/gate/authorize", "/api/gate/poll")
                     .permitAll()
                     .requestMatchers("/api/mobile/**")
                     .permitAll()
