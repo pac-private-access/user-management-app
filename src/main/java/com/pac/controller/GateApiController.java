@@ -1,17 +1,10 @@
 package com.pac.controller;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +14,7 @@ import com.pac.entity.Employee;
 import com.pac.repository.AccessLogRepository;
 import com.pac.repository.EmployeeRepository;
 import com.pac.service.EmployeeService;
+import com.pac.service.GatePendingService;
 
 import lombok.*;
 
@@ -35,10 +29,7 @@ public class GateApiController {
   private final EmployeeService employeeService;
   private final AccessLogRepository accessLogRepository;
   private final SimpMessagingTemplate messagingTemplate;
-
-  /** Base URL of the ESP32 web server (SoftAP default: 192.168.4.1). */
-  @Value("${esp32.url:http://192.168.4.1}")
-  private String esp32Url;
+  private final GatePendingService gatePendingService;
 
   // ─── Authorize (called by ESP32 and mobile app) ──────────────────────────
 
@@ -98,9 +89,9 @@ public class GateApiController {
             OffsetDateTime.now().toString()));
 
     // If the request came from the mobile app (not the ESP32 itself),
-    // command the ESP32 to open the gate asynchronously.
+    // set a pending flag — the ESP32 will pick it up on its next poll.
     if (allowed && !"bluetooth_esp32".equalsIgnoreCase(accessMethod)) {
-      CompletableFuture.runAsync(this::openEsp32Gate);
+      gatePendingService.request();
     }
 
     return ResponseEntity.ok(
@@ -118,29 +109,20 @@ public class GateApiController {
     return ResponseEntity.ok().build();
   }
 
-  // ─── Internal: command ESP32 to open gate ────────────────────────────────
+  // ─── ESP32 polling endpoint ───────────────────────────────────────────────
 
   /**
-   * Sends GET {esp32Url}/send_bt?text=OK to the ESP32.
-   * Uses Java's built-in HttpClient with a 5-second timeout so it never
-   * hangs the calling thread for long.
+   * Called by the ESP32 every 2 seconds. Returns OPEN once when a gate command
+   * is pending (triggered by mobile app or the web "Deschide poarta" button),
+   * then clears the flag so the gate only opens once per command.
    */
-  private void openEsp32Gate() {
-    try {
-      HttpClient client = HttpClient.newBuilder()
-          .connectTimeout(Duration.ofSeconds(5))
-          .build();
-      HttpRequest req = HttpRequest.newBuilder()
-          .uri(URI.create(esp32Url + "/send_bt?text=OK"))
-          .timeout(Duration.ofSeconds(5))
-          .GET()
-          .build();
-      HttpResponse<String> resp =
-          client.send(req, HttpResponse.BodyHandlers.ofString());
-      log.info("ESP32 gate command sent — HTTP {}", resp.statusCode());
-    } catch (Exception e) {
-      log.warn("Could not reach ESP32 at {}: {}", esp32Url, e.getMessage());
+  @GetMapping("/poll")
+  public ResponseEntity<String> poll() {
+    if (gatePendingService.consume()) {
+      log.info("ESP32 poll: OPEN command dispatched");
+      return ResponseEntity.ok("{\"command\":\"OPEN\"}");
     }
+    return ResponseEntity.ok("{\"command\":\"NONE\"}");
   }
 
   // ─── DTOs ─────────────────────────────────────────────────────────────────
