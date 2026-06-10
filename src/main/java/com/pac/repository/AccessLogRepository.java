@@ -2,6 +2,7 @@ package com.pac.repository;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,7 +16,7 @@ import com.pac.entity.AccessLog;
 public interface AccessLogRepository extends JpaRepository<AccessLog, UUID> {
     List<AccessLog> findByEventAtBetween(OffsetDateTime start, OffsetDateTime end);
     List<AccessLog> findByEmployeeIdAndEventAtBetween(UUID employeeId, OffsetDateTime start, OffsetDateTime end);
-
+    Optional<AccessLog> findTopByEmployeeIdOrderByEventAtDesc(UUID employeeId);
     @Query("SELECT COUNT(a) FROM AccessLog a WHERE a.eventType = :eventType AND a.eventAt >= :start AND a.eventAt < :end")
     long countEntries(@Param("eventType") String eventType, @Param("start") OffsetDateTime start, @Param("end") OffsetDateTime end);
 

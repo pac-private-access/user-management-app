@@ -102,6 +102,23 @@ public class MobileApiController {
 
     return ResponseEntity.ok(result);
   }
+  
+  @GetMapping("/last-event/{employeeId}")
+  public ResponseEntity<?> getLastEvent(@PathVariable UUID employeeId) {
+      return accessLogRepository
+          .findTopByEmployeeIdOrderByEventAtDesc(employeeId)
+          .map(log -> ResponseEntity.ok(new LastEventResponse(
+              log.getEventType(),
+              log.getEventAt().toString()
+          )))
+          .orElse(ResponseEntity.ok(new LastEventResponse(null, null)));
+  }
+
+  @Getter @AllArgsConstructor
+  public static class LastEventResponse {
+      private final String eventType;
+      private final String eventAt;
+  }
 
   // ─── Helper orar ──────────────────────────────────────────────────────────
   private String buildOrarString(List<AccessSchedule> schedules) {
