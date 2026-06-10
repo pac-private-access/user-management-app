@@ -82,7 +82,10 @@ public class EmployeeService {
                 .bluetoothSecurityCode(dto.getBluetoothSecurityCode())
                 .carPlate(dto.getCarPlate())
                 .isAccessActive(dto.isAccessActive())
-                .accessGrantedBy(dto.isAccessActive() ? dto.getAccessGrantedBy() : null)
+                // access_granted_by FK references employees(id) — leave null to avoid violation.
+                // The grantor's identity is captured as a plain string in accessGrantedByBadge.
+                .accessGrantedBy(null)
+                .accessGrantedByBadge(dto.isAccessActive() ? dto.getAccessGrantedByName() : null)
                 .accessGrantedAt(dto.isAccessActive() ? now : null)
                 .createdAt(now)
                 .updatedAt(now)

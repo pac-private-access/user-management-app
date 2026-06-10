@@ -20,6 +20,10 @@ public class EmployeeDto {
     private String bluetoothSecurityCode;
     private String carPlate;
     private boolean isAccessActive;
-    /** Set by the controller to the currently logged-in user's UUID when accessActive=true. */
-    private UUID accessGrantedBy;
+    /**
+     * Full name of the web user who granted access.
+     * Stored as a plain string — avoids the FK constraint on access_granted_by
+     * which references employees(id), not users(id).
+     */
+    private String accessGrantedByName;
 }
