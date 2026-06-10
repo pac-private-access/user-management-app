@@ -49,18 +49,16 @@ public class GateApiController {
    * and if access is granted fires an async HTTP call to the ESP32 to open the gate.
    */
   @PostMapping("/authorize")
-  public ResponseEntity<GateResponse> authorize(@RequestBody GateRequest request) {
-
+  public ResponseEntity<GateResponse> authorize(@RequestBody GatePackage packageReceived) {
+	
     Optional<Employee> empOpt = Optional.empty();
 
-    if (request.getBluetoothSecurityCode() != null
-        && !request.getBluetoothSecurityCode().isEmpty()) {
+    if (packageReceived.getBluetoothSecurityCode() != null
+        && !packageReceived.getBluetoothSecurityCode().isEmpty()) {
       empOpt = employeeRepository.findByBluetoothSecurityCode(
-          request.getBluetoothSecurityCode());
-    } else if (request.getBadgeNumber() != null && !request.getBadgeNumber().isEmpty()) {
-      empOpt = employeeRepository.findByBadgeNumber(request.getBadgeNumber());
+    		  packageReceived.getBluetoothSecurityCode());
     }
-
+    
     if (empOpt.isEmpty()) {
       return ResponseEntity.status(404)
           .body(new GateResponse("DENIED", "Angajat negăsit", false));
@@ -69,17 +67,11 @@ public class GateApiController {
     Employee employee  = empOpt.get();
     boolean  allowed   = employeeService.canEnter(employee);
     boolean  outOfSched = !allowed && employee.isAccessActive();
-    String   eventType  = "EXIT".equalsIgnoreCase(request.getDirection()) ? "exit" : "entry";
-    String   accessMethod =
-        request.getAccessMethod() != null ? request.getAccessMethod() : "bluetooth_pc";
 
     AccessLog entry = AccessLog.builder()
         .employeeId(employee.getId())
-        .eventType(eventType)
-        .accessMethod(accessMethod)
         .isAuthorized(allowed)
         .outOfSchedule(outOfSched)
-        .carPlateSeen(request.getCarPlate())
         .eventAt(OffsetDateTime.now())
         .syncedToCloud(true)
         .build();
@@ -93,13 +85,11 @@ public class GateApiController {
             employee.getLastName(),
             employee.getBadgeNumber(),
             allowed ? "GRANTED" : "DENIED",
-            eventType.toUpperCase(),
-            accessMethod,
             OffsetDateTime.now().toString()));
 
     // If the request came from the mobile app (not the ESP32 itself),
     // command the ESP32 to open the gate asynchronously.
-    if (allowed && !"bluetooth_esp32".equalsIgnoreCase(accessMethod)) {
+    if (allowed && !"ESP32_PAC".equalsIgnoreCase(packageReceived.getDeviceId())) {
       CompletableFuture.runAsync(this::openEsp32Gate);
     }
 
@@ -109,6 +99,7 @@ public class GateApiController {
             allowed ? "Acces permis" : "Acces refuzat",
             allowed));
   }
+    
 
   // ─── ESP32 receive (plain text from ESP32) ────────────────────────────────
 
@@ -131,7 +122,7 @@ public class GateApiController {
           .connectTimeout(Duration.ofSeconds(5))
           .build();
       HttpRequest req = HttpRequest.newBuilder()
-          .uri(URI.create(esp32Url + "/send_bt?text=OK"))
+          .uri(URI.create("OK"))
           .timeout(Duration.ofSeconds(5))
           .GET()
           .build();
@@ -144,7 +135,12 @@ public class GateApiController {
   }
 
   // ─── DTOs ─────────────────────────────────────────────────────────────────
-
+  @Getter @Setter @NoArgsConstructor
+  public static class GatePackage{
+	  private String deviceId;
+	  private String bluetoothSecurityCode;
+  }
+  
   @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
   public static class GateRequest {
     private String bluetoothSecurityCode;
@@ -169,8 +165,6 @@ public class GateApiController {
     private final String lastName;
     private final String badgeNumber;
     private final String result;
-    private final String direction;
-    private final String accessMethod;
     private final String timestamp;
   }
 }

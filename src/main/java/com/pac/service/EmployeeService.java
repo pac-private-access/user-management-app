@@ -75,6 +75,7 @@ public class EmployeeService {
         Employee emp = Employee.builder()
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
+                .email(generateEmail(dto.getFirstName(), dto.getLastName()))
                 .cnp(dto.getCnp())
                 .photoUrl(dto.getPhotoUrl())
                 .badgeNumber(badge)
@@ -150,5 +151,12 @@ public class EmployeeService {
         } while (employeeRepo.findByBadgeNumber(badge).isPresent() && attempts < 100);
 
         return badge;
+    }
+    
+    private String generateEmail(String firstName, String lastName) {
+    	int similarEmployeeCount = employeeRepo.findByFirstNameAndLastNameContaining(firstName, lastName).size();
+    	if(similarEmployeeCount > 1)
+    		return firstName + "." + lastName + similarEmployeeCount + "@pac.ro";
+    	return firstName + "." + lastName + "@pac.ro";
     }
 }

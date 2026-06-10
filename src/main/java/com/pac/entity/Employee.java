@@ -24,7 +24,10 @@ public class Employee {
 
     @Column(name = "first_name", nullable = false)
     private String firstName;
-
+    
+    @Column(name = "email", nullable = false)
+    private String email;
+    
     @Column(unique = true, nullable = false, length = 13)
     private String cnp;
 

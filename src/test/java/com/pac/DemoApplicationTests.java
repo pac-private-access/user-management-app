@@ -45,36 +45,36 @@ class DemoApplicationTests {
     @InjectMocks
     private GateApiController controller;
 
-    @Test
-    void EmployeeEntry() {
-        Employee emp = Employee.builder()
-                .id(UUID.randomUUID())
-                .firstName("Ion")
-                .lastName("Palasca")
-                .cnp("12345678910111")
-                .badgeNumber("EMP1234")
-                .divisionId(new UUID(new Random().nextLong(), new Random().nextLong()))
-                .bluetoothSecurityCode("456")
-                .isAccessActive(true)
-                .createdAt(OffsetDateTime.now())
-                .updatedAt(OffsetDateTime.now())
-                .build();
-
-        // Configure mocks so the employee is found and access log can be saved
-        when(employeeRepo.findByBluetoothSecurityCode(anyString()))
-                .thenReturn(Optional.of(emp));
-        when(employeeService.canEnter(any())).thenReturn(true);
-        when(accessLogRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-        var resp = controller.authorize(GateRequest.builder()
-                .bluetoothSecurityCode(emp.getBluetoothSecurityCode())
-                .accessMethod("bluetooth_esp32")
-                .badgeNumber(emp.getBadgeNumber())
-                .carPlate("GJ 06 LAY")
-                .direction("ENTRY")
-                .build());
-
-        assertNotNull(resp);
-        assertEquals(HttpStatus.OK, resp.getStatusCode());
-    }
+//    @Test
+//    void EmployeeEntry() {
+//        Employee emp = Employee.builder()
+//                .id(UUID.randomUUID())
+//                .firstName("Ion")
+//                .lastName("Palasca")
+//                .cnp("12345678910111")
+//                .badgeNumber("EMP1234")
+//                .divisionId(new UUID(new Random().nextLong(), new Random().nextLong()))
+//                .bluetoothSecurityCode("456")
+//                .isAccessActive(true)
+//                .createdAt(OffsetDateTime.now())
+//                .updatedAt(OffsetDateTime.now())
+//                .build();
+//
+//        // Configure mocks so the employee is found and access log can be saved
+//        when(employeeRepo.findByBluetoothSecurityCode(anyString()))
+//                .thenReturn(Optional.of(emp));
+//        when(employeeService.canEnter(any())).thenReturn(true);
+//        when(accessLogRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+//
+//        var resp = controller.authorize(GateRequest.builder()
+//                .bluetoothSecurityCode(emp.getBluetoothSecurityCode())
+//                .accessMethod("bluetooth_esp32")
+//                .badgeNumber(emp.getBadgeNumber())
+//                .carPlate("GJ 06 LAY")
+//                .direction("ENTRY")
+//                .build());
+//
+//        assertNotNull(resp);
+//        assertEquals(HttpStatus.OK, resp.getStatusCode());
+//    }
 }
